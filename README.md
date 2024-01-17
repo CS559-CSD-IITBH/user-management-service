@@ -22,16 +22,10 @@ Before running the service, make sure you have the following dependencies instal
    git clone https://github.com/your-username/user-management-service.git
    cd user-management-service
 
-2. Add your personal **CockroachDB** URL to the `main.go` file in the `root` directory.
-
-   ```
-   db, err := gorm.Open(sqlite.Open(<sql database url>), &gorm.Config{})
-   ```
-   
-4. Add a `.env` file in the root directory with following fields:
+3. Add a `.env` file in the root directory with following fields:
    
    ```
-   DSN=<add your SQL instance url hosted on cloud here>
+   DSN=<add your CockroachDB instance url hosted on cloud here>
    PORT=<add host port>
    ```
 
