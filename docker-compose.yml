@@ -3,8 +3,10 @@ version: '3.7'
 services:  
   api:
     image: docker.io/library/user-management-service-api:latest
+    env_file:
+      - .env
     ports:
-      - 8080:8080
+      - "${PORT}:8080"
     networks:
       - user-management
 

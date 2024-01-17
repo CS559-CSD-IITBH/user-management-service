@@ -21,7 +21,7 @@ func main() {
 	}
 
 	// Add user to database
-	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(os.Getenv("DSN")), &gorm.Config{})
 	db.AutoMigrate(&models.Customer{})
 	db.AutoMigrate(&models.Merchant{})
 	db.AutoMigrate(&models.DeliveryAgent{})

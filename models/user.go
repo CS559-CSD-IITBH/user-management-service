@@ -19,7 +19,7 @@ type Customer struct {
 type Merchant struct {
 	gorm.Model
 	UID          string `gorm:"unique"`
-	StoreName    string
+	MerchantName string
 	StoreAddress string
 }
 

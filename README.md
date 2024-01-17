@@ -28,7 +28,12 @@ Before running the service, make sure you have the following dependencies instal
    db, err := gorm.Open(sqlite.Open(<sql database url>), &gorm.Config{})
    ```
    
-4. Add a `.env` file in the root directory with necessary fields.
+4. Add a `.env` file in the root directory with following fields:
+   
+   ```
+   DSN=<add your SQL instance url hosted on cloud here>
+   PORT=<add host port>
+   ```
 
 5. Build the docker image for the **api-service**. Run the following command in the root directory.
 
