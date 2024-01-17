@@ -4,7 +4,7 @@ It is a Go-based service that provides functionalities related to user creation,
 
 ## Features
 
-- **Integration with MongoDB:** Utilizes [MongoDB](https://github.com/mongodb/mongo) to store user details such as credentials, addresses, contact details, etc. 
+- **Integration with CockroachDB:** Utilizes [CockroachDB](https://github.com/cockroachdb/cockroach) to store user details such as credentials, addresses, contact details, etc. 
 - **Gin Web Framework:** Uses the [Gin](https://github.com/gin-gonic/gin) web framework for handling HTTP requests and responses.
 
 ## Prerequisites
@@ -22,20 +22,13 @@ Before running the service, make sure you have the following dependencies instal
    git clone https://github.com/your-username/user-management-service.git
    cd user-management-service
 
-2. Add your personal **MongoDB** URL to the `config.toml` file in the `monstache` directory.
+2. Add your personal **CockroachDB** URL to the `main.go` file in the `root` directory.
 
    ```
-   mongo-url = <url for your personal mongo instance>
+   db, err := gorm.Open(sqlite.Open(<sql database url>), &gorm.Config{})
    ```
    
-4. Add a `.env` file in the root directory. It should contain the following fields.
-
-   ```
-   PORT=<port for the api-service>
-   ELASTICSEARCH_URL=<url for your personal elasticsearch instance>
-   MONGODB_URL=<url for your personal mongo instance>
-   MONGODB_COLLECTION=<database-name.collection-name in your mongo instance> 
-   ```
+4. Add a `.env` file in the root directory with necessary fields.
 
 5. Build the docker image for the **api-service**. Run the following command in the root directory.
 
