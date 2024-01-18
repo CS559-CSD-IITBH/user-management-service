@@ -4,7 +4,7 @@ It is a Go-based service that provides functionalities related to user creation,
 
 ## Features
 
-- **Integration with CockroachDB:** Utilizes [CockroachDB](https://github.com/cockroachdb/cockroach) to store user details such as credentials, addresses, contact details, etc. 
+- **Integration with Postgres:** Utilizes [Postgres](https://github.com/postgres/postgres) hosted on [CockroachDB](https://github.com/cockroachdb/cockroach) cloud to store user details such as credentials, addresses, contact details, etc. 
 - **Gin Web Framework:** Uses the [Gin](https://github.com/gin-gonic/gin) web framework for handling HTTP requests and responses.
 
 ## Prerequisites
@@ -25,7 +25,7 @@ Before running the service, make sure you have the following dependencies instal
 3. Add a `.env` file in the root directory with following fields:
    
    ```
-   DSN=<add your CockroachDB instance url hosted on cloud here>
+   DSN=<add your Postgres instance url hosted on CockroachDB cloud here>
    PORT=<add host port>
    ```
 

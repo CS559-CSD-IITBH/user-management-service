@@ -6,7 +6,7 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
 	"github.com/CS559-CSD-IITBH/user-management-service/models"
@@ -20,13 +20,21 @@ func main() {
 		log.Fatalln("Internal server error: Unable to load the env file")
 	}
 
-	// Add user to database
-	db, err := gorm.Open(sqlite.Open(os.Getenv("DSN")), &gorm.Config{})
-	db.AutoMigrate(&models.Customer{})
-	db.AutoMigrate(&models.Merchant{})
-	db.AutoMigrate(&models.DeliveryAgent{})
-	db.AutoMigrate(&models.User{})
-	db.AutoMigrate(&models.PasswordResetToken{})
+	db, err := gorm.Open(postgres.Open(os.Getenv("DSN")), &gorm.Config{})
+	if err != nil {
+		log.Fatal("Internal server error: Unable to connect to Postgres")
+	}
+
+	err = db.AutoMigrate(
+		&models.Customer{},
+		&models.Merchant{},
+		&models.DeliveryAgent{},
+		&models.User{},
+		&models.PasswordResetToken{},
+	)
+	if err != nil {
+		log.Fatal("Internal server error: Unable to migrate models to Postgres")
+	}
 
 	// Session store in  NewFilesystemStore
 	store := sessions.NewFilesystemStore("sessions/", []byte("secret-key"))
@@ -35,10 +43,6 @@ func main() {
 	store.Options = &sessions.Options{
 		MaxAge:   86400 * 7,
 		HttpOnly: true,
-	}
-
-	if err != nil {
-		log.Fatalln("Internal server error: Unable to connect to the DB")
 	}
 
 	r := routes.SetupRouter(db, store)

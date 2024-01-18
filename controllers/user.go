@@ -60,7 +60,7 @@ func Create(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
 	if userData.UserType == "customer" {
 		result = db.Create(&models.Customer{UID: uid, Address: userData.Address})
 	} else if userData.UserType == "merchant" {
-		result = db.Create(&models.Merchant{UID: uid, StoreName: userData.MerchantName, StoreAddress: userData.StoreAddress})
+		result = db.Create(&models.Merchant{UID: uid, StoreAddress: userData.StoreAddress})
 	} else if userData.UserType == "delivery_agent" {
 		result = db.Create(&models.DeliveryAgent{UID: uid, LicenseNumber: userData.LicenseNumber, VehicleType: userData.VehicleType, VehicleNumber: userData.VehicleNumber})
 	}
