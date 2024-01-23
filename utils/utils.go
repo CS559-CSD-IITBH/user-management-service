@@ -40,7 +40,6 @@ func GenerateResetToken() (string, error) {
 func SendEmail(to_receiver string, msg string) {
 	smtpHost := "smtp.gmail.com"
 	smtpPort := "587"
-	// from := "vemuganti72@gmail.com"
 	from := os.Getenv("MAIL_FROM")
 	password := os.Getenv("MAIL_PASSWORD")
 	auth := smtp.PlainAuth("", from, password, smtpHost)

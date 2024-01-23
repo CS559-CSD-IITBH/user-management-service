@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/CS559-CSD-IITBH/user-management-service/models"
@@ -15,14 +16,14 @@ func Create(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
 
 	// Get JSON body from request
 	var userData struct {
-		Email    string `json:"email" binding:"required"`
-		Password string `json:"password" binding:"required"`
-		Phone    string `json:"phone" binding:"required"`
-		Name     string `json:"name" binding:"required"`
-		UserType string `json:"user_type" binding:"required"`
+		Email        string `json:"email" binding:"required"`
+		Password     string `json:"password" binding:"required"`
+		MobileNumber string `json:"mobile_number" binding:"required"`
+		UserType     string `json:"user_type" binding:"required"`
 
 		// Fields for customers
-		Address string `json:"address"`
+		CustomerName    string `json:"customer_name"`
+		DeliveryAddress string `json:"delivery_address"`
 
 		// Fields for merchants
 		MerchantName string `json:"merchant_name"`
@@ -35,8 +36,8 @@ func Create(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
 	}
 
 	// Read JSON body
-
 	if err := c.ShouldBindJSON(&userData); err != nil {
+		log.Println("Error: Unable to bind JSON, bad request.")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -52,26 +53,29 @@ func Create(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
 
 	// Check for errors
 	if result.Error != nil {
+		log.Println("Error: Unable to create user in DB, bad request.")
 		c.JSON(http.StatusBadRequest, gin.H{"error": result.Error})
 		return
 	}
 
 	// Now we can use the UID to store additional information about the user in a separate table
 	if userData.UserType == "customer" {
-		result = db.Create(&models.Customer{UID: uid, Address: userData.Address})
+		result = db.Create(&models.Customer{UID: uid, CustomerName: userData.CustomerName, MobileNumber: userData.MobileNumber, DeliveryAddress: userData.DeliveryAddress})
 	} else if userData.UserType == "merchant" {
-		result = db.Create(&models.Merchant{UID: uid, StoreAddress: userData.StoreAddress})
+		result = db.Create(&models.Merchant{UID: uid, MerchantName: userData.MerchantName, MobileNumber: userData.MobileNumber, StoreAddress: userData.StoreAddress})
 	} else if userData.UserType == "delivery_agent" {
 		result = db.Create(&models.DeliveryAgent{UID: uid, LicenseNumber: userData.LicenseNumber, VehicleType: userData.VehicleType, VehicleNumber: userData.VehicleNumber})
 	}
 
 	// Check for errors
 	if result.Error != nil {
+		log.Println("Error: Unable to add to user-specific DB, bad request.")
 		c.JSON(http.StatusBadRequest, gin.H{"error": result.Error})
 		return
 	}
 
 	// Return success
+	log.Println("Success: User succesfully created.")
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
 
 }
@@ -82,6 +86,7 @@ func Update(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
 	// Get JSON body from request
 	var updateData map[string]interface{}
 	if err := c.ShouldBindJSON(&updateData); err != nil {
+		log.Println("Error: Unable to bind JSON, bad request.")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -91,6 +96,7 @@ func Update(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
 	db.Where("uid = ?", uid).First(&user)
 
 	if user.UID == "" {
+		log.Println("Error: Unable to find user, bad request.")
 		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		return
 	}
@@ -113,6 +119,8 @@ func Update(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
 		db.Save(&deliveryAgent)
 	}
 
+	// Return success
+	log.Println("Success: User succesfully updated.")
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
@@ -127,6 +135,7 @@ func Login(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
 
 	// Read JSON body
 	if err := c.ShouldBindJSON(&userData); err != nil {
+		log.Println("Error: Unable to bind JSON, bad request.")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -138,6 +147,7 @@ func Login(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
 	// Hash the password using the bcrypt package
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(userData.Password))
 	if err != nil {
+		log.Println("Error: Password not matching, bad request.")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
@@ -146,6 +156,8 @@ func Login(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
 	session.Values["user"] = user.UID
 	session.Save(c.Request, c.Writer)
 
+	// Return success
+	log.Println("Success: User succesfully logged in.")
 }
 
 // Logout endpoint
@@ -154,4 +166,7 @@ func Logout(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
 	session.Options.MaxAge = -1
 	session.Save(c.Request, c.Writer)
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
+
+	// Return success
+	log.Println("Success: User succesfully logged out.")
 }

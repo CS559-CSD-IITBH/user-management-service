@@ -12,14 +12,17 @@ type User struct {
 
 type Customer struct {
 	gorm.Model
-	UID     string `gorm:"unique"`
-	Address string
+	UID             string `gorm:"unique"`
+	CustomerName    string
+	MobileNumber    string
+	DeliveryAddress string
 }
 
 type Merchant struct {
 	gorm.Model
 	UID          string `gorm:"unique"`
 	MerchantName string
+	MobileNumber string
 	StoreAddress string
 }
 
