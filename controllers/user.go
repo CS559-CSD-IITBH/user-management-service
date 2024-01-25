@@ -1,18 +1,18 @@
 package controllers
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/CS559-CSD-IITBH/user-management-service/models"
 	"github.com/CS559-CSD-IITBH/user-management-service/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
+	"github.com/rs/zerolog"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
-func Create(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
+func Create(c *gin.Context, db *gorm.DB, store *sessions.CookieStore, logger zerolog.Logger) {
 
 	// Get JSON body from request
 	var userData struct {
@@ -37,7 +37,7 @@ func Create(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
 
 	// Read JSON body
 	if err := c.ShouldBindJSON(&userData); err != nil {
-		log.Println("Error: Unable to bind JSON, bad request.")
+		logger.Error().Msg("Unable to bind JSON")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -53,7 +53,7 @@ func Create(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
 
 	// Check for errors
 	if result.Error != nil {
-		log.Println("Error: Unable to create user in DB, bad request.")
+		logger.Error().Msg("Unable to create user in DB")
 		c.JSON(http.StatusBadRequest, gin.H{"error": result.Error})
 		return
 	}
@@ -69,24 +69,42 @@ func Create(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
 
 	// Check for errors
 	if result.Error != nil {
-		log.Println("Error: Unable to add to user-specific DB, bad request.")
+		logger.Error().Msg("Unable to add to user-specific DB")
 		c.JSON(http.StatusBadRequest, gin.H{"error": result.Error})
 		return
 	}
 
-	// Return success
-	log.Println("Success: User succesfully created.")
-	c.JSON(http.StatusOK, gin.H{"status": "success"})
+	// Get a session. Get() always returns a session, even if empty.
+	session, err := store.Get(c.Request, "auth")
+	if err != nil {
+		logger.Error().Msg("Unable to get user session")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
 
+	// Set session values.
+	session.Values["user"] = uid
+
+	// Save it
+	err = session.Save(c.Request, c.Writer)
+	if err != nil {
+		logger.Error().Msg("Unable to save user session")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+
+	// Return success
+	logger.Info().Msg("User successfully created")
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
-func Update(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
+func Update(c *gin.Context, db *gorm.DB, store *sessions.CookieStore, logger zerolog.Logger) {
 	uid := c.Param("uid")
 
 	// Get JSON body from request
 	var updateData map[string]interface{}
 	if err := c.ShouldBindJSON(&updateData); err != nil {
-		log.Println("Error: Unable to bind JSON, bad request.")
+		logger.Error().Msg("Unable to bind JSON")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -96,7 +114,7 @@ func Update(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
 	db.Where("uid = ?", uid).First(&user)
 
 	if user.UID == "" {
-		log.Println("Error: Unable to find user, bad request.")
+		logger.Error().Msg("Unable to find user")
 		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		return
 	}
@@ -120,12 +138,11 @@ func Update(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
 	}
 
 	// Return success
-	log.Println("Success: User succesfully updated.")
+	logger.Info().Msg("User successfully updated")
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
-// Create /login endpoint and return JWT token
-func Login(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
+func Login(c *gin.Context, db *gorm.DB, store *sessions.CookieStore, logger zerolog.Logger) {
 
 	// Get JSON body from request
 	var userData struct {
@@ -135,7 +152,7 @@ func Login(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
 
 	// Read JSON body
 	if err := c.ShouldBindJSON(&userData); err != nil {
-		log.Println("Error: Unable to bind JSON, bad request.")
+		logger.Error().Msg("Unable to bind JSON")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -147,26 +164,58 @@ func Login(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
 	// Hash the password using the bcrypt package
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(userData.Password))
 	if err != nil {
-		log.Println("Error: Password not matching, bad request.")
+		logger.Error().Msg("Email or password is incorrect")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
+
 	// Gorilla sessions
-	session, _ := store.Get(c.Request, "session-name")
+	session, err := store.Get(c.Request, "auth")
+	if err != nil {
+		logger.Error().Msg("Unable to get user session")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+
+	// Set session values.
 	session.Values["user"] = user.UID
-	session.Save(c.Request, c.Writer)
+
+	// Log session information
+	logger.Info().Msgf("Session user: %v", session.Values["user"])
+
+	// Save it
+	err = session.Save(c.Request, c.Writer)
+	if err != nil {
+		logger.Error().Msg("Unable to save user session")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
 
 	// Return success
-	log.Println("Success: User succesfully logged in.")
+	logger.Info().Msg("User login successful")
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
 // Logout endpoint
-func Logout(c *gin.Context, db *gorm.DB, store *sessions.FilesystemStore) {
-	session, _ := store.Get(c.Request, "session-name")
+func Logout(c *gin.Context, db *gorm.DB, store *sessions.CookieStore, logger zerolog.Logger) {
+	session, err := store.Get(c.Request, "auth")
+	if err != nil {
+		logger.Error().Msg("Unable to get user session")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+
 	session.Options.MaxAge = -1
-	session.Save(c.Request, c.Writer)
-	c.JSON(http.StatusOK, gin.H{"status": "success"})
+
+	// Save it
+	err = session.Save(c.Request, c.Writer)
+	if err != nil {
+		logger.Error().Msg("Unable to save user session")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
 
 	// Return success
-	log.Println("Success: User succesfully logged out.")
+	logger.Info().Msg("User logout successful")
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
 }

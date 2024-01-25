@@ -1,11 +1,12 @@
 package main
 
 import (
-	"log"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 
+	"github.com/rs/zerolog"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
@@ -15,14 +16,16 @@ import (
 )
 
 func main() {
+	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
+
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalln("Internal server error: Unable to load the env file")
+		logger.Fatal().Msg("Unable to load the env file")
 	}
 
 	db, err := gorm.Open(postgres.Open(os.Getenv("DSN")), &gorm.Config{})
 	if err != nil {
-		log.Fatal("Internal server error: Unable to connect to Postgres")
+		logger.Fatal().Msg("Unable to connect to Postgres")
 	}
 
 	err = db.AutoMigrate(
@@ -33,11 +36,11 @@ func main() {
 		&models.PasswordResetToken{},
 	)
 	if err != nil {
-		log.Fatal("Internal server error: Unable to migrate models to Postgres")
+		logger.Fatal().Msg("Unable to migrate models to Postgres")
 	}
 
-	// Session store in  NewFilesystemStore
-	store := sessions.NewFilesystemStore("sessions/", []byte("secret-key"))
+	// Session store
+	store := sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
 
 	// Set max age for cookie
 	store.Options = &sessions.Options{
@@ -45,6 +48,7 @@ func main() {
 		HttpOnly: true,
 	}
 
-	r := routes.SetupRouter(db, store)
+	r := routes.SetupRouter(db, store, logger)
+	logger.Info().Msg("Setup Complete. Starting user-service...")
 	r.Run(":" + os.Getenv("PORT"))
 }

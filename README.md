@@ -27,6 +27,7 @@ Before running the service, make sure you have the following dependencies instal
    ```
    DSN=<add your Postgres instance url hosted on CockroachDB cloud here>
    PORT=<add host port>
+   SESSION_KEY=<random private session key to secure user sessions>
    ```
 
 5. Build the docker image for the **api-service**. Run the following command in the root directory.
