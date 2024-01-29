@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"os"
 	"time"
 
@@ -44,8 +45,11 @@ func main() {
 
 	// Set max age for cookie
 	store.Options = &sessions.Options{
+		Path:     "/api/v1",
 		MaxAge:   86400 * 7,
 		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
 	}
 
 	r := routes.SetupRouter(db, store, logger)

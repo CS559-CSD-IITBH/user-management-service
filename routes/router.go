@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"os"
+
 	"github.com/CS559-CSD-IITBH/user-management-service/controllers"
 	"github.com/CS559-CSD-IITBH/user-management-service/middlewares"
 	"github.com/gin-contrib/cors"
@@ -14,7 +16,10 @@ func SetupRouter(db *gorm.DB, store *sessions.CookieStore, logger zerolog.Logger
 	r := gin.Default()
 
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"*"}
+	config.AllowOrigins = []string{os.Getenv("FRONTEND_URL")}
+	config.AllowCredentials = true
+	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "PATCH"}
+	config.AllowHeaders = []string{"Content-Type", "*"}
 	r.Use(cors.New(config))
 
 	v1 := r.Group("/api/v1")
