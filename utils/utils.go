@@ -19,15 +19,6 @@ func HashPassword(password string) (string, error) {
 	return string(hashedPassword), nil
 }
 
-func GenerateUID() (string, error) {
-	uid := make([]byte, 16)
-	_, err := rand.Read(uid)
-	if err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(uid), nil
-}
-
 func GenerateResetToken() (string, error) {
 	uid := make([]byte, 16)
 	_, err := rand.Read(uid)

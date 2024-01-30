@@ -1,92 +1,103 @@
 package controllers
 
-import (
-	"net/http"
+// import (
+// 	"context"
+// 	"net/http"
 
-	"github.com/CS559-CSD-IITBH/user-management-service/models"
-	"github.com/CS559-CSD-IITBH/user-management-service/utils"
-	"github.com/gin-gonic/gin"
-	"github.com/gorilla/sessions"
-	"github.com/rs/zerolog"
-	"gorm.io/gorm"
-)
+// 	"github.com/CS559-CSD-IITBH/user-management-service/models"
+// 	"github.com/CS559-CSD-IITBH/user-management-service/utils"
+// 	"github.com/gin-gonic/gin"
+// 	"github.com/rs/zerolog"
+// 	"go.mongodb.org/mongo-driver/bson"
+// 	"go.mongodb.org/mongo-driver/mongo"
+// )
 
-func ForgotPassword(c *gin.Context, db *gorm.DB, store *sessions.CookieStore, logger zerolog.Logger) {
-	// Get JSON body from request
-	var requestData struct {
-		Email string `json:"email" binding:"required"`
-	}
+// func ForgotPassword(c *gin.Context, customers *mongo.Collection, merchants *mongo.Collection, logger zerolog.Logger) {
+// 	var requestData struct {
+// 		Email string `json:"email" binding:"required"`
+// 	}
 
-	// Read JSON body
-	if err := c.ShouldBindJSON(&requestData); err != nil {
-		logger.Error().Msg("Unable to bind JSON")
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+// 	if err := c.ShouldBindJSON(&requestData); err != nil {
+// 		logger.Error().Msg("Unable to bind JSON")
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// 		return
+// 	}
 
-	// Check if the email exists in the database
-	var user models.User
-	db.Where("email = ?", requestData.Email).First(&user)
-	if user.UID == "" {
-		logger.Error().Msg("Unable to find user")
-		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-		return
-	}
+// 	var user models.Customer
+// 	err := customers.FindOne(context.TODO(), bson.M{"email": requestData.Email}).Decode(&user)
+// 	if err != nil {
+// 		err = merchants.FindOne(context.TODO(), bson.M{"email": requestData.Email}).Decode(&user)
+// 	}
+// 	if user.UID == "" {
+// 		logger.Error().Msg("Unable to find user")
+// 		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+// 		return
+// 	}
 
-	// Generate a unique token for password reset
-	resetToken, err := utils.GenerateResetToken()
-	if err != nil {
-		logger.Error().Msg("Unable to generate unique token")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		return
-	}
+// 	resetToken, err := utils.GenerateResetToken()
+// 	if err != nil {
+// 		logger.Error().Msg("Unable to generate unique token")
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+// 		return
+// 	}
 
-	// Store the reset token in the database
-	db.Create(&models.PasswordResetToken{UID: user.UID, Token: resetToken})
+// 	resetTokenModel := models.PasswordResetToken{UID: user.UID, Token: resetToken}
+// 	_, err = db.InsertOne(context.TODO(), resetTokenModel)
+// 	if err != nil {
+// 		logger.Error().Msg("Unable to store reset token in DB")
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+// 		return
+// 	}
 
-	// TODO: Send reset token to the user (via email, SMS, etc.)
-	utils.SendEmail(user.Email, resetToken)
+// 	utils.SendEmail(user.Email, resetToken)
 
-	logger.Info().Msg("Password reset token sent successfully")
-	c.JSON(http.StatusOK, gin.H{"status": "success"})
-}
+// 	logger.Info().Msg("Password reset token sent successfully")
+// 	c.JSON(http.StatusOK, gin.H{"status": "success"})
+// }
 
-func ResetPassword(c *gin.Context, db *gorm.DB, store *sessions.CookieStore, logger zerolog.Logger) {
-	// Get JSON body from request
-	var resetData struct {
-		Token    string `json:"token" binding:"required"`
-		Password string `json:"password" binding:"required"`
-	}
+// func ResetPassword(c *gin.Context, customers *mongo.Collection, merchants *mongo.Collection, logger zerolog.Logger) {
+// 	var resetData struct {
+// 		Token    string `json:"token" binding:"required"`
+// 		Password string `json:"password" binding:"required"`
+// 	}
 
-	// Read JSON body
-	if err := c.ShouldBindJSON(&resetData); err != nil {
-		logger.Error().Msg("Unable to bind JSON")
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+// 	if err := c.ShouldBindJSON(&resetData); err != nil {
+// 		logger.Error().Msg("Unable to bind JSON")
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// 		return
+// 	}
 
-	// Find the user associated with the reset token
-	var resetToken models.PasswordResetToken
-	db.Where("token = ?", resetData.Token).First(&resetToken)
-	if resetToken.UID == "" {
-		logger.Error().Msg("Invalid reset token")
-		c.JSON(http.StatusNotFound, gin.H{"error": "invalid reset token"})
-		return
-	}
+// 	var resetToken models.PasswordResetToken
+// 	err := db.FindOne(context.TODO(), bson.M{"token": resetData.Token}).Decode(&resetToken)
+// 	if err != nil {
+// 		logger.Error().Msg("Invalid reset token")
+// 		c.JSON(http.StatusNotFound, gin.H{"error": "invalid reset token"})
+// 		return
+// 	}
 
-	// Update the user's password
-	hashedPassword, _ := utils.HashPassword(resetData.Password)
-	result := db.Model(&models.User{}).Where("uid = ?", resetToken.UID).Update("password", hashedPassword)
-	if result.Error != nil {
-		// Handle the error
-		logger.Error().Msg("Unable to update password in DB")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		return
-	}
+// 	hashedPassword, _ := utils.HashPassword(resetData.Password)
+// 	result, err := db.UpdateOne(context.TODO(),
+// 		bson.M{"uid": resetToken.UID},
+// 		bson.M{"$set": bson.M{"password": hashedPassword}})
+// 	if err != nil {
+// 		logger.Error().Msg("Unable to update password in DB")
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+// 		return
+// 	}
 
-	// Delete the used reset token
-	db.Delete(&resetToken)
+// 	if result.ModifiedCount == 0 {
+// 		logger.Error().Msg("User not found for the given reset token")
+// 		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+// 		return
+// 	}
 
-	logger.Info().Msg("Password reset successfully")
-	c.JSON(http.StatusOK, gin.H{"status": "success"})
-}
+// 	_, err = db.DeleteOne(context.TODO(), bson.M{"token": resetData.Token})
+// 	if err != nil {
+// 		logger.Error().Msg("Unable to delete reset token from DB")
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+// 		return
+// 	}
+
+// 	logger.Info().Msg("Password reset successfully")
+// 	c.JSON(http.StatusOK, gin.H{"status": "success"})
+// }
